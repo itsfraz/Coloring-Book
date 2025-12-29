@@ -1,10 +1,21 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from './components/Button';
 import { Scene, AppStatus, Complexity } from './types';
 import { generateBookScenes, generateLineArt, generateColoredArt } from './services/geminiService';
 import { ColorCanvas } from './components/ColorCanvas';
 import { jsPDF } from 'jspdf';
+
+const LOADING_MESSAGES = [
+  "Sharpening the magic pencils...",
+  "Mixing some vibrant watercolors...",
+  "The robot artist is dreaming up a story...",
+  "Adding a sprinkle of fairy dust...",
+  "Searching for the perfect colors...",
+  "Almost there! Just one more stroke...",
+  "Sketching out your imagination...",
+  "Gathering all the creative sparks..."
+];
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState('');
@@ -14,6 +25,18 @@ const App: React.FC = () => {
   const [activeColoringScene, setActiveColoringScene] = useState<Scene | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ current: number, total: number } | null>(null);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  // Cycle through loading messages
+  useEffect(() => {
+    let interval: number;
+    if (status === 'GENERATING_SCENES') {
+      interval = window.setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [status]);
 
   const generatePDF = async (bookScenes: Scene[], isSingle: boolean = false) => {
     const doc = new jsPDF();
@@ -330,7 +353,27 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {error && <p className="text-red-500 font-bold animate-bounce mt-4">{error}</p>}
+              {error && (
+                <div className="mt-4 p-4 bg-red-100 text-red-600 rounded-2xl font-bold flex items-center justify-center gap-2 animate-pulse">
+                  <i className="fas fa-exclamation-circle"></i>
+                  {error}
+                </div>
+              )}
+
+              <div className="pt-8">
+                <p className="text-gray-400 font-bold mb-4 uppercase tracking-widest text-sm">Great ideas for your book:</p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {popularThemes.map(t => (
+                    <button 
+                      key={t.name}
+                      onClick={() => { setTheme(t.name); }}
+                      className="px-4 py-2 bg-white border-2 border-yellow-100 rounded-full hover:border-yellow-400 hover:bg-yellow-50 transition-all font-bold text-gray-700 flex items-center gap-2"
+                    >
+                      <span>{t.icon}</span> {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -338,26 +381,42 @@ const App: React.FC = () => {
         {status === 'GENERATING_SCENES' && (
           <div className="flex-1 flex flex-col items-center justify-center space-y-8 py-20">
             <div className="relative">
-              <div className={`w-24 h-24 border-8 border-yellow-100 rounded-full animate-spin ${complexity === 'detailed' ? 'border-t-indigo-600' : 'border-t-yellow-400'}`}></div>
-              <div className="absolute inset-0 flex items-center justify-center text-4xl">{complexity === 'detailed' ? '🔍' : '✨'}</div>
+              <div className={`w-32 h-32 border-8 border-yellow-100 rounded-full animate-spin ${complexity === 'detailed' ? 'border-t-indigo-600' : 'border-t-yellow-400'}`}></div>
+              <div className="absolute inset-0 flex items-center justify-center text-5xl float-animation">
+                {complexity === 'detailed' ? '🎨' : '🪄'}
+              </div>
             </div>
-            <div className="text-center">
-              <h3 className="text-3xl font-black text-gray-800">
-                {bulkProgress ? `Building Your Magic Book...` : `Generating Your Story...`}
+            <div className="text-center space-y-4 max-w-lg">
+              <h3 className="text-4xl font-black text-gray-800">
+                {bulkProgress ? `Creating Your Masterpiece` : `Imagining Your Story...`}
               </h3>
+              
+              <p className="text-indigo-600 font-black text-xl italic animate-pulse">
+                {LOADING_MESSAGES[loadingMessageIndex]}
+              </p>
+
               {bulkProgress && (
-                <div className="mt-4">
-                  <div className="w-64 h-4 bg-gray-200 rounded-full overflow-hidden mx-auto border-2 border-white shadow-sm">
+                <div className="mt-8 space-y-4">
+                  <div className="w-full h-6 bg-white rounded-full overflow-hidden p-1 border-2 border-yellow-200 shadow-inner">
                     <div 
-                      className="h-full bg-indigo-500 transition-all duration-500" 
+                      className={`h-full rounded-full transition-all duration-700 ease-out ${complexity === 'detailed' ? 'bg-indigo-500' : 'bg-yellow-400'}`}
                       style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
                     />
                   </div>
-                  <p className="text-indigo-600 font-black mt-2">
-                    Drawing page {bulkProgress.current} of {bulkProgress.total}...
-                  </p>
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
+                      {Math.round((bulkProgress.current / bulkProgress.total) * 100)}% Complete
+                    </span>
+                    <span className="text-sm font-black text-gray-600">
+                      Page {bulkProgress.current} of {bulkProgress.total}
+                    </span>
+                  </div>
                 </div>
               )}
+              
+              <div className="bg-white/50 p-4 rounded-2xl border-2 border-yellow-100 backdrop-blur-sm">
+                 <p className="text-gray-500 font-bold">Current Theme: "{theme}"</p>
+              </div>
             </div>
           </div>
         )}
@@ -411,9 +470,17 @@ const App: React.FC = () => {
                         )}
                       </div>
                     ) : scene.isGenerating ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10">
-                        <i className={`fas fa-pencil-alt text-2xl animate-bounce ${complexity === 'detailed' ? 'text-indigo-600' : 'text-yellow-400'}`}></i>
-                        <span className="text-[10px] font-bold text-gray-400 mt-2 uppercase">Creating...</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 z-10 p-6 text-center">
+                        <div className="relative">
+                          <i className={`fas fa-magic text-3xl animate-pulse ${complexity === 'detailed' ? 'text-indigo-600' : 'text-yellow-400'}`}></i>
+                          <div className="absolute -top-1 -right-1">
+                             <div className="w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                          </div>
+                        </div>
+                        <span className="text-[12px] font-black text-gray-700 mt-4 uppercase tracking-tighter">AI Artist at work...</span>
+                        <div className="w-full h-1.5 bg-gray-200 rounded-full mt-4 overflow-hidden">
+                          <div className={`h-full rounded-full animate-infinite-loading ${complexity === 'detailed' ? 'bg-indigo-600' : 'bg-yellow-400'}`} style={{width: '30%'}}></div>
+                        </div>
                       </div>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-5">
@@ -424,7 +491,7 @@ const App: React.FC = () => {
 
                   <div className="mb-4 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-black text-[10px] ${complexity === 'detailed' ? 'bg-indigo-600' : 'bg-yellow-400'}`}>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-black text-[10px] flex-shrink-0 ${complexity === 'detailed' ? 'bg-indigo-600' : 'bg-yellow-400'}`}>
                         {index + 1}
                       </span>
                       <h4 className="font-black text-sm text-gray-800 line-clamp-1">{scene.title}</h4>
@@ -439,7 +506,7 @@ const App: React.FC = () => {
                         size="sm"
                         className={`w-full ${complexity === 'detailed' ? 'bg-indigo-600 text-white hover:bg-indigo-500' : ''}`}
                       >
-                        Draw
+                        Generate Page
                       </Button>
                     ) : (
                       <>
