@@ -1,0 +1,5 @@
+{
+  "name": "ColorJoy: AI Coloring Book Maker",
+  "description": "An enchanting app that uses Gemini to generate custom children's coloring books with themed stories and high-quality line art images ready for digital coloring or printing.",
+  "requestFramePermissions": []
+}
