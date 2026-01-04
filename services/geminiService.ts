@@ -6,8 +6,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const generateBookScenes = async (theme: string, complexity: Complexity, count: number = 5): Promise<Scene[]> => {
   const complexityInstruction = complexity === 'detailed' 
-    ? "Create engaging and detailed scenes for 10-12 year olds. Include interesting architectural details, nature patterns, or clear mechanical parts. The scenes should be sophisticated but have clear, colorable sections without being overly cluttered or messy." 
-    : "Create simple, bold scenes for small children with large, clear focal points and minimal background clutter.";
+    ? "Create engaging scenes for children with clear subjects and moderate detail. Avoid overwhelming patterns or tiny sections. Focus on clean outlines and distinct, easy-to-color parts while maintaining a polished look." 
+    : "Create very simple, bold scenes for small children with large, clear focal points and minimal background clutter.";
 
   const prompt = `Create a ${count}-page coloring book concept about "${theme}". 
     ${complexityInstruction}
@@ -48,7 +48,7 @@ export const generateBookScenes = async (theme: string, complexity: Complexity, 
 
 export const generateLineArt = async (scenePrompt: string, complexity: Complexity): Promise<string> => {
   const complexityModifiers = complexity === 'detailed'
-    ? "detailed line art, clear intricate patterns, engaging composition, professional coloring book style, clean crisp lines, interesting architecture, many colorable sections but keep them manageable, no grayscale, no shading"
+    ? "clean line art, defined coloring sections, professional style, crisp lines, clear subjects, manageable detail, open spaces, no grayscale, no shading, easy to color"
     : "simple bold line art, large coloring areas, thick clean lines, minimal detail, very clear shapes for young children";
 
   const enhancedPrompt = `${scenePrompt}. High-quality coloring book page, black and white line art, ${complexityModifiers}, white background, no solid blacks, vector style, perfect white and black contrast, no gradients, clean white spaces.`;

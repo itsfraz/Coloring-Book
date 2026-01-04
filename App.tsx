@@ -20,6 +20,7 @@ const LOADING_MESSAGES = [
 const App: React.FC = () => {
   const [theme, setTheme] = useState('');
   const [complexity, setComplexity] = useState<Complexity>('simple');
+  const [sceneCount, setSceneCount] = useState<number>(8);
   const [status, setStatus] = useState<AppStatus>('IDLE');
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [activeColoringScene, setActiveColoringScene] = useState<Scene | null>(null);
@@ -157,7 +158,7 @@ const App: React.FC = () => {
     doc.save(fileName);
   };
 
-  const handleStartGeneration = async (count: number = 8) => {
+  const handleStartGeneration = async (count: number) => {
     if (!theme.trim()) return;
     setStatus('GENERATING_SCENES');
     setError(null);
@@ -176,15 +177,15 @@ const App: React.FC = () => {
     if (!theme.trim()) return;
     setStatus('GENERATING_SCENES');
     setError(null);
-    setBulkProgress({ current: 0, total: 8 });
+    setBulkProgress({ current: 0, total: sceneCount });
 
     try {
-      const generatedScenes = await generateBookScenes(theme, complexity, 8);
+      const generatedScenes = await generateBookScenes(theme, complexity, sceneCount);
       setScenes(generatedScenes);
       const updatedScenes = [...generatedScenes];
 
       for (let i = 0; i < updatedScenes.length; i++) {
-        setBulkProgress({ current: i + 1, total: 8 });
+        setBulkProgress({ current: i + 1, total: sceneCount });
         try {
           const [lineArtUrl, coloredUrl] = await Promise.all([
             generateLineArt(updatedScenes[i].imagePrompt, complexity),
@@ -293,7 +294,7 @@ const App: React.FC = () => {
       <main className="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col">
         {status === 'IDLE' && (
           <div className="flex-1 flex flex-col items-center justify-center py-12">
-            <div className="text-center space-y-6 max-w-2xl">
+            <div className="text-center space-y-6 max-w-2xl w-full">
               <div className="float-animation inline-block p-4 bg-white rounded-full shadow-lg border-4 border-yellow-200">
                 <span className="text-6xl">🎨</span>
               </div>
@@ -302,23 +303,50 @@ const App: React.FC = () => {
                 <span className="text-yellow-500">Coloring Book!</span>
               </h2>
               <p className="text-xl text-gray-600 font-medium">
-                Generate an <span className="text-indigo-600 font-bold">8-page PDF</span> with vibrant colored guides to help you paint!
+                Generate a custom <span className="text-indigo-600 font-bold">{sceneCount}-page PDF</span> with vibrant colored guides!
               </p>
               
-              <div className="flex flex-col gap-4 mt-8">
-                <div className="flex justify-center items-center gap-4 bg-white p-2 rounded-2xl shadow-sm self-center border-2 border-yellow-100">
-                  <button 
-                    onClick={() => setComplexity('simple')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold ${complexity === 'simple' ? 'bg-yellow-400 text-white scale-105 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    <i className="fas fa-shapes"></i> Little Artist
-                  </button>
-                  <button 
-                    onClick={() => setComplexity('detailed')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold ${complexity === 'detailed' ? 'bg-indigo-600 text-white scale-105 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    <i className="fas fa-microscope"></i> Big Kid Art (10-12)
-                  </button>
+              <div className="flex flex-col gap-6 mt-8">
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-6 bg-white p-6 rounded-[2rem] shadow-sm border-2 border-yellow-100">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest text-left">Level</label>
+                    <div className="flex bg-gray-100 rounded-full p-1">
+                      <button 
+                        onClick={() => setComplexity('simple')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold ${complexity === 'simple' ? 'bg-yellow-400 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        Little Artist
+                      </button>
+                      <button 
+                        onClick={() => setComplexity('detailed')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold ${complexity === 'detailed' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        Big Kid (10-12)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="h-px sm:h-12 w-full sm:w-px bg-gray-100" />
+
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest">How many pages?</label>
+                      <span className="text-indigo-600 font-black text-lg">{sceneCount}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-300">4</span>
+                      <input 
+                        type="range" 
+                        min="4" 
+                        max="12" 
+                        step="1"
+                        value={sceneCount}
+                        onChange={(e) => setSceneCount(parseInt(e.target.value))}
+                        className="flex-1 accent-indigo-600 h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-300">12</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="relative group flex flex-col gap-4">
@@ -338,13 +366,13 @@ const App: React.FC = () => {
                       onClick={handleGenerateFullBook}
                       disabled={!theme}
                     >
-                      <i className="fas fa-file-pdf mr-3"></i> Download 8-Page Book
+                      <i className="fas fa-file-pdf mr-3"></i> Download {sceneCount}-Page Book
                     </Button>
                     <Button 
                       size="lg" 
                       variant="secondary"
                       className="px-8" 
-                      onClick={() => handleStartGeneration(8)}
+                      onClick={() => handleStartGeneration(sceneCount)}
                       disabled={!theme}
                     >
                       <i className="fas fa-images mr-2"></i> Preview Pages
@@ -428,7 +456,7 @@ const App: React.FC = () => {
                 <div className={`inline-block px-4 py-1 text-white rounded-full text-xs font-black uppercase tracking-widest mb-2 shadow-sm ${complexity === 'detailed' ? 'bg-indigo-600' : 'bg-yellow-400'}`}>
                   {complexity === 'detailed' ? 'Big Kid Mode (10-12)' : 'Little Artist Mode'}
                 </div>
-                <h2 className="text-3xl font-black text-gray-800">"{theme}" Collection</h2>
+                <h2 className="text-3xl font-black text-gray-800">"{theme}" Collection ({scenes.length} pages)</h2>
               </div>
               <div className="flex gap-3">
                 {someImagesReady && (
